@@ -1,0 +1,112 @@
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <link rel="stylesheet" href="ui.css">
+
+  <!-- Chart.js FIRST -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- jsPDF SECOND -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+
+
+
+
+</head>
+
+<body>
+
+  <!-- MAIN CONTAINER -->
+  <div class="container">
+
+    <!-- HEADING -->
+    <h1>💰 Cash-Flow Dashboard</h1>
+
+    <!-- ================= SALARY SECTION ================= -->
+    <h2 class="section-title">Salary Details</h2>
+
+    <input
+      type="number"
+      id="salaryInput"
+      placeholder="Enter your monthly salary"
+    />
+    <p class="helper-text">Enter your total monthly salary</p>
+
+    <button id="setSalaryBtn" class="primary">
+      Set Salary
+    </button>
+
+    <!-- ================= EXPENSE SECTION ================= -->
+    <h2 class="section-title">Add Expenses</h2>
+
+    <input
+      type="text"
+      id="expenseName"
+      placeholder="Expense name (e.g. Rent, Food)"
+    />
+
+    <input
+      type="number"
+      id="expenseAmount"
+      placeholder="Expense amount"
+    />
+    <p class="helper-text">Expense amount must be greater than 0</p>
+
+    <button id="addExpenseBtn" class="secondary">
+      Add Expense
+    </button>
+
+    <!-- ================= SUMMARY ================= -->
+    <h2 class="section-title">Summary</h2>
+
+    <div class="stats">
+
+      <div class="stat-card salary">
+        <p>Total Salary</p>
+        <span>₹<span id="salaryDisplay">0</span></span>
+      </div>
+
+      <div class="stat-card expense">
+        <p>Total Expenses</p>
+        <span>₹<span id="expenseDisplay">0</span></span>
+      </div>
+
+      <div class="stat-card balance">
+        <p>Remaining Balance</p>
+        <span>₹<span id="balanceDisplay">0</span></span>
+      </div>
+
+    </div>
+    <select id="currencySelect">
+  <option value="INR">INR</option>
+  <option value="USD">USD</option>
+</select>
+
+
+    <!-- ================= EXPENSE LIST ================= -->
+    <h2 class="section-title">Expense List</h2>
+
+    <p id="emptyMsg" class="empty-text">
+      No expenses added yet
+    </p>
+
+    <ul id="expenseList"></ul>
+
+    <!-- ================= CHART ================= -->
+    <canvas id="expenseChart"></canvas>
+
+    <!-- ================= DOWNLOAD ================= -->
+    <button id="downloadPdfBtn" class="download">
+      Download Report
+    </button>
+
+   >
+
+  </div>
+
+  <!-- JS -->
+  <script src="back.js"></script>
+</body>
+</html>
