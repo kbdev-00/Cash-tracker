@@ -13,6 +13,8 @@ let alertShown = false;
 // ===============================
 // DOM ELEMENTS
 // ===============================
+const currencySymbols = document.querySelectorAll("#currencySymbol");
+
 const salaryInput = document.getElementById("salaryInput");
 const setSalaryBtn = document.getElementById("setSalaryBtn");
 
@@ -41,20 +43,22 @@ document.addEventListener("DOMContentLoaded", () => {
 // ===============================
 // SET SALARY
 // ===============================
-setSalaryBtn.addEventListener("click", () => {
-  const value = Number(salaryInput.value);
+if (setSalaryBtn) {
+  setSalaryBtn.addEventListener("click", () => {
+    const val = Number(salaryInput.value);
+    if (!val || val <= 0 || isNaN(val)) {
+      alert("Please enter valid salary");
+      return;
+    }
 
-  if (value <= 0 || isNaN(value)) {
-    alert("Please enter a valid salary");
-    return;
-  }
+    salary = val;
+    salaryInput.value = "";
+    alertShown = false;
 
-  salary = value;
-  salaryInput.value = "";
-
-  updateUI();
-  saveToLocalStorage();
-});
+    updateUI();
+    saveToLocalStorage();
+  });
+}
 
 // ===============================
 // ADD EXPENSE
@@ -71,7 +75,7 @@ addExpenseBtn.addEventListener("click", () => {
   expenses.push({
     id: Date.now(),
     name,
-    amount
+    amount: amount / exchangeRate
   });
 
   expenseNameInput.value = "";
@@ -80,6 +84,7 @@ addExpenseBtn.addEventListener("click", () => {
   updateUI();
   saveToLocalStorage();
 });
+
 
 // ===============================
 // DELETE EXPENSE
@@ -111,7 +116,7 @@ function updateUI() {
     balanceDisplay.style.color = "red";
 
     if (!alertShown) {
-      alert("⚠️ Warning: Remaining balance below 10%");
+      alert("⚠️ Warning: Your remaining balance is below 10% of your salary!");
       alertShown = true;
     }
   } else {
@@ -228,6 +233,10 @@ if (currencySelect) {
   currencySelect.addEventListener("change", async () => {
     currentCurrency = currencySelect.value;
 
+    // 🔥 SYMBOL UPDATE
+    const symbol = currentCurrency === "USD" ? "$" : "₹";
+    currencySymbols.forEach(el => el.innerText = symbol);
+
     if (currentCurrency === "USD") {
       try {
         const res = await fetch(
@@ -236,10 +245,8 @@ if (currencySelect) {
         const data = await res.json();
         exchangeRate = data.rates.USD;
       } catch (err) {
-        alert("Currency conversion failed. Using INR.");
         exchangeRate = 1;
         currentCurrency = "INR";
-        currencySelect.value = "INR";
       }
     } else {
       exchangeRate = 1;
@@ -249,6 +256,7 @@ if (currencySelect) {
   });
 }
 
+
 // ===============================
 // PDF DOWNLOAD (jsPDF)
 // ===============================
@@ -257,68 +265,175 @@ if (downloadPdfBtn) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
-    let y = 20;
+    let y = 15;
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
 
-    doc.setFontSize(16);
-    doc.text("Cash-Flow Report", 20, y);
-    y += 10;
+    // ===== PREMIUM HEADER =====
+    // Header gradient effect with two colors
+    doc.setFillColor(37, 99, 235); // Darker blue
+    doc.rect(0, 0, pageWidth, 45, "F");
+    
+    doc.setFillColor(59, 130, 246); // Lighter blue
+    doc.rect(0, 35, pageWidth, 10, "F");
 
+    // Title
+    doc.setFontSize(28);
+    doc.setFont(undefined, "bold");
+    doc.setTextColor(255, 255, 255);
+    doc.text("CASH-FLOW REPORT", pageWidth / 2, 18, { align: "center" });
+
+    // Subtitle
     doc.setFontSize(11);
-    doc.text(`Currency: ${currentCurrency}`, 20, y);
-    y += 10;
+    doc.setFont(undefined, "normal");
+    doc.setTextColor(220, 235, 255);
+    doc.text("Smart Financial Dashboard", pageWidth / 2, 28, { align: "center" });
 
-    const totalExpense = expenses.reduce(
-      (sum, item) => sum + item.amount,
-      0
-    );
+    // Date
+    doc.setFontSize(10);
+    doc.text(`Generated: ${new Date().toLocaleDateString()} | ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`, 20, 40);
+
+    // Reset text color
+    doc.setTextColor(0, 0, 0);
+    y = 55;
+
+    // ===== SUMMARY CARDS WITH BORDERS =====
+    const cardHeight = 28;
+    const cardWidth = (pageWidth - 50) / 3;
+    const cardY = y;
+
+    const totalExpense = expenses.reduce((sum, item) => sum + item.amount, 0);
     const balance = salary - totalExpense;
 
-    doc.text(
-      `Total Salary: ${(salary * exchangeRate).toFixed(2)} ${currentCurrency}`,
-      20,
-      y
-    );
+    // Card 1: Salary (Green)
+    doc.setFillColor(16, 185, 129);
+    doc.rect(15, cardY, cardWidth, cardHeight, "F");
+    doc.setDrawColor(10, 140, 100);
+    doc.setLineWidth(0.5);
+    doc.rect(15, cardY, cardWidth, cardHeight);
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(9);
+    doc.setFont(undefined, "bold");
+    doc.text("TOTAL SALARY", 18, cardY + 7);
+    doc.setFontSize(14);
+    doc.setFont(undefined, "bold");
+    doc.text(`${(salary * exchangeRate).toFixed(2)}`, 18, cardY + 18);
+    doc.setFontSize(8);
+    doc.setFont(undefined, "normal");
+    doc.text(currentCurrency, 18, cardY + 24);
+
+    // Card 2: Expenses (Red)
+    doc.setFillColor(239, 68, 68);
+    doc.rect(15 + cardWidth + 10, cardY, cardWidth, cardHeight, "F");
+    doc.setDrawColor(200, 40, 40);
+    doc.setLineWidth(0.5);
+    doc.rect(15 + cardWidth + 10, cardY, cardWidth, cardHeight);
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(9);
+    doc.setFont(undefined, "bold");
+    doc.text("TOTAL EXPENSES", 20 + cardWidth + 10, cardY + 7);
+    doc.setFontSize(14);
+    doc.setFont(undefined, "bold");
+    doc.text(`${(totalExpense * exchangeRate).toFixed(2)}`, 20 + cardWidth + 10, cardY + 18);
+    doc.setFontSize(8);
+    doc.setFont(undefined, "normal");
+    doc.text(currentCurrency, 20 + cardWidth + 10, cardY + 24);
+
+    // Card 3: Balance (Dynamic color)
+    const balanceColor = balance < 0 ? [220, 38, 38] : [34, 197, 94];
+    const borderColor = balance < 0 ? [180, 30, 30] : [22, 160, 70];
+    doc.setFillColor(...balanceColor);
+    doc.rect(15 + (cardWidth + 10) * 2, cardY, cardWidth, cardHeight, "F");
+    doc.setDrawColor(...borderColor);
+    doc.setLineWidth(0.5);
+    doc.rect(15 + (cardWidth + 10) * 2, cardY, cardWidth, cardHeight);
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(9);
+    doc.setFont(undefined, "bold");
+    doc.text("REMAINING BALANCE", 20 + (cardWidth + 10) * 2, cardY + 7);
+    doc.setFontSize(14);
+    doc.setFont(undefined, "bold");
+    doc.text(`${(balance * exchangeRate).toFixed(2)}`, 20 + (cardWidth + 10) * 2, cardY + 18);
+    doc.setFontSize(8);
+    doc.setFont(undefined, "normal");
+    doc.text(currentCurrency, 20 + (cardWidth + 10) * 2, cardY + 24);
+
+    y += 45;
+
+    // ===== DIVIDER LINE =====
+    doc.setDrawColor(200, 200, 200);
+    doc.setLineWidth(0.3);
+    doc.line(15, y, pageWidth - 15, y);
+
     y += 8;
 
-    doc.text(
-      `Total Expenses: ${(totalExpense * exchangeRate).toFixed(2)} ${currentCurrency}`,
-      20,
-      y
-    );
-    y += 8;
+    // ===== EXPENSE DETAILS SECTION HEADER =====
+    doc.setFillColor(99, 102, 241); // Indigo
+    doc.rect(15, y - 4, pageWidth - 30, 10, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFont(undefined, "bold");
+    doc.setFontSize(12);
+    doc.text("EXPENSE BREAKDOWN", 20, y + 2);
 
-    doc.text(
-      `Remaining Balance: ${(balance * exchangeRate).toFixed(2)} ${currentCurrency}`,
-      20,
-      y
-    );
     y += 12;
 
-    doc.setFontSize(13);
-    doc.text("Expense Details:", 20, y);
-    y += 8;
+    // ===== TABLE HEADER =====
+    doc.setFillColor(79, 70, 229); // Darker indigo
+    doc.rect(15, y - 5, pageWidth - 30, 8, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(10);
+    doc.setFont(undefined, "bold");
+    doc.text("S.No", 20, y + 1);
+    doc.text("Item Name", 40, y + 1);
+    doc.text("Amount", 140, y + 1);
 
-    doc.setFontSize(11);
+    y += 10;
+
+    // ===== TABLE DATA =====
+    doc.setTextColor(0, 0, 0);
+    doc.setFont(undefined, "normal");
+    doc.setFontSize(10);
 
     if (expenses.length === 0) {
-      doc.text("No expenses added.", 20, y);
+      doc.setFont(undefined, "italic");
+      doc.setTextColor(100, 100, 100);
+      doc.text("No expenses recorded yet", 20, y);
     } else {
       expenses.forEach((item, index) => {
-        if (y > 270) {
+        if (y > pageHeight - 30) {
           doc.addPage();
           y = 20;
         }
 
-        doc.text(
-          `${index + 1}. ${item.name} - ${(item.amount * exchangeRate).toFixed(
-            2
-          )} ${currentCurrency}`,
-          20,
-          y
-        );
-        y += 7;
+        // Alternating row colors
+        if (index % 2 === 0) {
+          doc.setFillColor(245, 248, 252);
+          doc.rect(15, y - 5, pageWidth - 30, 7, "F");
+        }
+
+        doc.setTextColor(0, 0, 0);
+        doc.setFont(undefined, "normal");
+        doc.text(`${index + 1}`, 20, y);
+        doc.text(item.name, 40, y);
+        doc.text(`${(item.amount * exchangeRate).toFixed(2)} ${currentCurrency}`, 140, y);
+        y += 8;
       });
     }
+
+    // ===== FOOTER =====
+    y = pageHeight - 12;
+    doc.setDrawColor(200, 200, 200);
+    doc.setLineWidth(0.3);
+    doc.line(15, y - 2, pageWidth - 15, y - 2);
+
+    doc.setFontSize(8);
+    doc.setFont(undefined, "italic");
+    doc.setTextColor(120, 120, 120);
+    doc.text("CashFlow Pro • Smart Financial Dashboard", pageWidth / 2, y + 3, { align: "center" });
+    doc.text(`Page 1 of ${doc.internal.pages.length - 1}`, pageWidth / 2, y + 7, { align: "center" });
 
     doc.save("Cash-Flow-Report.pdf");
   });
